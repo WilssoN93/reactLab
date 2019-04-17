@@ -127,9 +127,6 @@ this.getList();
 
             <div className="author">{book.author}</div>
             <div className="buttons">
-              <button type="button" className="btn btn-success">
-                Editera
-        </button>
               <button type="button" className="btn btn-danger" onClick={event=>this.removeBook(event,book.id)}>
                 Ta bort
         </button>
