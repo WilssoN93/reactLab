@@ -82,10 +82,11 @@ this.getList();
         console.log("An error occured while adding a book")
         this.setState({counter:this.state.counter - 1})
         console.log("Counter is " + this.state.counter)
-        this.addBook(event);
+        alert("Ops something went wrong! Try Again!")
       }else{
 
         console.log("Added a book")
+        this.setState({counter:10})
         this.getList();
       }
     })
@@ -103,8 +104,9 @@ this.getList();
     .then(response => {
       if (response.status==="error"&& this.state.counter>0){
         
-        this.removeBook(event,id);
+        alert("Ops something went wrong! Try Again!")
         this.setState({counter:this.state.counter - 1})
+        console.log("An error occured while removing the book")
         console.log("Counter is " + this.state.counter )
       }else{
 
