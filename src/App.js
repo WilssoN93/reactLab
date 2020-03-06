@@ -1,39 +1,42 @@
 import React, { Component } from 'react'
 import Header from './components/ui/Header/Header'
+import RenderBookList from './RenderBookList';
 
 const url = "https://www.forverkliga.se/JavaScript/api/crud.php?";
 
 class App extends Component {
   constructor() {
     super()
-this.addBook=this.addBook.bind(this);
-this.removeBook=this.removeBook.bind(this);
-this.addListItem=this.addListItem.bind(this);
-this.getList();
-
+    this.addBook = this.addBook.bind(this);
+    this.removeBook = this.removeBook.bind(this);
+    this.getNewKey = this.getNewKey.bind(this)
+    this.getList = this.getList.bind(this)
     this.state = {
       list: [],
       title: "",
       author: "",
-      counter:10
+      counter: 10
 
     }
   }
 
-
-  getKey() {
+  async getKey() {
     const cachedKey = localStorage.getItem("apiKey")
 
     if (cachedKey) {
-      
+      console.log(cachedKey)
       return cachedKey;
     } else {
       try {
-        const apiKey = fetch(url + "requestKey")
+        const apiKey = await fetch(url + "requestKey")
           .then(response => response.json())
           .then(result => result.key)
 
+
         localStorage.setItem('apiKey', apiKey)
+        console.log(apiKey)
+
+
         return apiKey
       }
       catch (err) {
@@ -43,99 +46,87 @@ this.getList();
     }
   }
 
-     getList() {
-    const key = this.getKey()
-      fetch(url + "key=" + key + '&op=select')
-        .then(response => response.json())
-        .then(result =>{
-          if(result.status === "success"){
-            
-            this.setState({ list: result.data })
-            console.log("List is set")
+  async getList() {
+  
+    const key = "key=" + await this.getKey()
+    await fetch(url + key + '&op=select')
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === "success") {
 
-          }else if(result.status==="error"){
-            this.getList();
-            console.log("Trying to set list again")
-          }else{
-            
-            console.log("this shouldnt happen")
-          }
+          this.setState({ list: result.data })
+          console.log("List is set")
+        } else if (result.status === "error") {
+          console.log(result)
+          this.getList();
+          console.log("Trying to set list again")
           
-        })
- 
+        }
+
+      })
+
   }
 
+  componentDidMount(){
+    this.getList();
+  }
 
-
-
-   addBook(event) {
-     event.persist();
+  async addBook(event) {
+    event.persist();
     event.preventDefault();
     const authorInput = document.getElementById("author").value;
     const titleInput = document.getElementById("title").value;
-    const key = "key=" + this.getKey();
-    
-    fetch(url + key + "&op=insert&title=" + titleInput + "&author=" + authorInput)
-    .then(response => response.json())
-    .then(response => {
-      if (response.status==="error"&& this.state.counter>0){
-        console.log("An error occured while adding a book")
-        this.setState({counter:this.state.counter - 1})
-        console.log("Counter is " + this.state.counter)
-        alert("Ops something went wrong! Try Again!")
-      }else{
+    const key = "key=" + await this.getKey();
 
-        console.log("Added a book")
-        this.setState({counter:10})
-        this.getList();
-      }
-    })
-
+    for (var i = 10; i >= 0; i--) {
+      await fetch(url + key + "&op=insert&title=" + titleInput + "&author=" + authorInput)
+        .then(response => response.json())
+        .then(response => {
+          if (response.status === "error" && i > 0) {
+            console.log(response)
+            console.log(i + " tries left")
+          } else {
+            console.log("Added a book")
+            i = 0;
+            this.getList()
+          }
+        })
+    }
   }
 
-   removeBook(event, id){
-     event.persist();
-    event.preventDefault();
-    const key = this.getKey();
-    
-
-    fetch(url+"key="+key+"&op=delete&id="+id)
-    .then(response => response.json())
-    .then(response => {
-      if (response.status==="error"&& this.state.counter>0){
-        
-        alert("Ops something went wrong! Try Again!")
-        this.setState({counter:this.state.counter - 1})
-        console.log("An error occured while removing the book")
-        console.log("Counter is " + this.state.counter )
-      }else{
-
-        console.log("Removed the book")
-        this.setState({counter:10})
-        this.getList();
-      }
-    })
-    
+  async removeBook(event, id) {
+    event.persist();
+    const key = "key=" + await this.getKey();
+    for (var i = 10; i >= 0; i--) {
+      await fetch(url + key + "&op=delete&id=" + id)
+        .then(response => response.json())
+        .then(response => {
+          if (response.status === "error" && i > 0) {
+            console.log(response)
+            console.log(i + " tries left")
+          } else {
+            console.log("Removed a book")
+            i = 0;
+            this.getList()
+          }
+        })
+    }
   }
 
-  addListItem() {
+  async getNewKey(event) {
+    event.persist();
     try {
-      return this.state.list.map(book => {
-        return (
-          <li key={book.id} className="list-item list-group-item d-flex align-items-center">
-            <strong className="title">{book.title}</strong>
-
-            <div className="author">{book.author}</div>
-            <div className="buttons">
-              <button type="button" className="btn btn-danger" onClick={event=>this.removeBook(event,book.id)}>
-                Ta bort
-        </button>
-            </div>
-          </li>
-        )
-      })
-    } catch (err) {
+      const apiKey = await fetch(url + "requestKey")
+        .then(response => response.json())
+        .then(result => result.key)
+      localStorage.setItem('apiKey', apiKey)
+      console.log(apiKey)
+      return apiKey;
+    }
+    catch (err) {
       console.log(err)
+      return err;
+
     }
   }
 
@@ -177,6 +168,14 @@ this.getList();
               >
                 Skicka
               </button>
+              <button
+                id="btn"
+                type="submit"
+                className="btn btn-primary btn-lg btn-block"
+                onClick={this.getNewKey}
+              >
+                New Key
+              </button>
             </form>
           </div>
         </div>
@@ -184,13 +183,12 @@ this.getList();
           <div className="container">
             <div className="col-12">
               <ul className="list-group">
-              <li key="Info" className="list-item list-group-item d-flex align-items-center">
-            <strong className="title">Title</strong>
-
-            <div className="author"><strong>Author</strong></div>
-            <div className="buttons"><strong>Buttons </strong></div>
-          </li>
-              {this.addListItem()}
+                <li key="Info" className="list-item list-group-item d-flex align-items-center">
+                  <strong className="title">Title</strong>
+                  <div className="author"><strong>Author</strong></div>
+                  <div className="buttons"><strong>Buttons </strong></div>
+                  </li>
+                <RenderBookList list={this.state.list} removeBook={this.removeBook}/>
               </ul>
             </div>
           </div>
